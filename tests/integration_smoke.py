@@ -30,7 +30,7 @@ async def main():
         tabs = await manager.wait_until_connectable(ENDPOINT, timeout=10)
         if not tabs:
             raise RuntimeError("Chrome exposed no tabs")
-        discovered = await manager.discover_debug_endpoint("http://127.0.0.1:9999")
+        discovered = await manager.discover_debug_endpoint(ENDPOINT)
         if discovered != ENDPOINT:
             raise RuntimeError(f"Auto-discovery failed: {discovered}")
         manager.select_tab(tabs[0].key)

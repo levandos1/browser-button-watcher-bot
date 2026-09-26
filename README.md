@@ -108,8 +108,6 @@ Run:
 build.bat
 ```
 
-The script installs/updates dependencies inside `.venv`, generates the application icon, cleans old build output, and creates a single windowed executable with PyInstaller.
-
 Output:
 
 ```text
