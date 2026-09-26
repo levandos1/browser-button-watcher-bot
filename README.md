@@ -40,7 +40,7 @@ The easiest way to use the app is:
 4. In the launched browser, open the page you want to monitor.
 5. Click **REFRESH TABS** if the new tab is not shown yet.
 6. Select the target tab.
-7. Enter the button text, for example `Я тут`.
+7. Enter the button text, for example `start`.
 8. Choose a **Match mode**.
 9. Set **Check interval** and **Click cooldown**.
 10. Click **START MONITORING**.
