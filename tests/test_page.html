@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>ButtonWatcher Test Page</title>
+<style>
+body { font-family: sans-serif; padding: 2rem; }
+.hidden { display: none; }
+section { margin: 1rem 0; }
+</style>
+</head>
+<body>
+<h1>ButtonWatcher integration test</h1>
+<section><button id="immediate">Я тут</button></section>
+<section><button id="disabled" disabled>Я тут</button></section>
+<section><button id="hidden" class="hidden">Я тут</button></section>
+<section id="delayed"></section>
+<section>
+<iframe srcdoc="<button id='frame-target'>Я тут</button>"></iframe>
+</section>
+<script>
+setTimeout(() => {
+  const button = document.createElement("button");
+  button.textContent = "Я тут";
+  button.id = "delayed-target";
+  document.getElementById("delayed").appendChild(button);
+}, 5000);
+</script>
+</body>
+</html>

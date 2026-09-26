@@ -1,0 +1,107 @@
+QWidget {
+    background: #0d1117;
+    color: #e6edf3;
+    font-family: "Cascadia Mono", "Consolas", monospace;
+    font-size: 10pt;
+}
+QMainWindow { background: #0d1117; }
+QGroupBox {
+    border: 1px solid #30363d;
+    border-radius: 6px;
+    margin-top: 14px;
+    padding: 12px;
+    font-weight: 600;
+}
+QGroupBox::title {
+    subcontrol-origin: margin;
+    left: 10px;
+    padding: 0 5px;
+    color: #8b949e;
+}
+QLineEdit, QComboBox, QSpinBox, QDoubleSpinBox, QPlainTextEdit {
+    background: #161b22;
+    border: 1px solid #30363d;
+    border-radius: 5px;
+    padding: 6px;
+    selection-background-color: #1f6feb;
+}
+QLineEdit:focus, QComboBox:focus, QSpinBox:focus, QDoubleSpinBox:focus {
+    border: 1px solid #58a6ff;
+}
+QPushButton {
+    background: #21262d;
+    border: 1px solid #30363d;
+    border-radius: 5px;
+    padding: 7px 12px;
+    font-weight: 600;
+}
+QPushButton:hover { background: #30363d; }
+QPushButton:pressed { background: #161b22; }
+QPushButton:disabled { color: #6e7681; background: #161b22; }
+QPushButton#primaryButton {
+    background: #238636;
+    border-color: #2ea043;
+    color: white;
+}
+QPushButton#dangerButton {
+    background: #da3633;
+    border-color: #f85149;
+    color: white;
+}
+QLabel#muted { color: #8b949e; }
+QLabel#status { font-weight: 700; }
+QPlainTextEdit { font-size: 9pt; }
+QScrollBar:vertical {
+    background: #0d1117;
+    width: 10px;
+    margin: 0;
+}
+QScrollBar::handle:vertical {
+    background: #30363d;
+    border-radius: 5px;
+    min-height: 24px;
+}
+
+QPushButton#primaryButton[monitoringActive="true"] {
+    background: #163d20;
+    border: 2px solid #56d364;
+    color: #7ee787;
+}
+QPushButton#primaryButton[monitoringActive="true"]:disabled {
+    background: #163d20;
+    border: 2px solid #56d364;
+    color: #7ee787;
+}
+QPushButton#dangerButton[monitoringActive="true"] {
+    background: #6e1f1f;
+    border: 2px solid #ff7b72;
+    color: #ffffff;
+}
+QPushButton#dangerButton[monitoringActive="true"]:hover {
+    background: #8b2525;
+    border-color: #ffa198;
+}
+QSpinBox::up-button, QDoubleSpinBox::up-button,
+QSpinBox::down-button, QDoubleSpinBox::down-button {
+    subcontrol-origin: border;
+    width: 25px;
+    background: #21262d;
+    border-left: 1px solid #30363d;
+}
+QSpinBox::up-button, QDoubleSpinBox::up-button {
+    subcontrol-position: top right;
+    border-bottom: 1px solid #30363d;
+    border-top-right-radius: 4px;
+}
+QSpinBox::down-button, QDoubleSpinBox::down-button {
+    subcontrol-position: bottom right;
+    border-bottom-right-radius: 4px;
+}
+QSpinBox::up-button:hover, QDoubleSpinBox::up-button:hover,
+QSpinBox::down-button:hover, QDoubleSpinBox::down-button:hover {
+    background: #30363d;
+}
+QSpinBox::up-button:pressed, QDoubleSpinBox::up-button:pressed,
+QSpinBox::down-button:pressed, QDoubleSpinBox::down-button:pressed {
+    background: #161b22;
+}
