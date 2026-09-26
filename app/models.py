@@ -13,6 +13,14 @@ class AppState(StrEnum):
     ERROR = "ERROR"
 
 
+class BrowserType(StrEnum):
+    CHROME = "chrome"
+    EDGE = "edge"
+    OPERA = "opera"
+    YANDEX = "yandex"
+    CHROMIUM = "chromium"
+
+
 class MatchMode(StrEnum):
     EXACT = "Exact(полное совпадение)"
     CONTAINS = "Contains(кнопка должна содержать указанную фразу)"

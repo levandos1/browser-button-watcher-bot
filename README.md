@@ -1,6 +1,6 @@
 # ButtonWatcher
 
-A Windows desktop app that monitors one selected Chrome / Edge / Chromium tab and automatically clicks a visible enabled button when its text matches a phrase you specify.
+A Windows desktop app that monitors one selected Chrome / Edge / Opera / Yandex Browser / Chromium tab and automatically clicks a visible enabled button when its text matches a phrase you specify.
 
 ButtonWatcher works through Playwright and Chrome DevTools Protocol (CDP). It clicks inside the browser page and never moves your physical mouse cursor, so you can keep using the computer normally.
 
@@ -19,12 +19,13 @@ ButtonWatcher can:
 - click matching elements without moving the Windows mouse cursor;
 - keep monitoring continuously and click the same visible button again after the configured cooldown;
 - keep the UI responsive while monitoring in a background worker;
+- switch the interface between English and Russian; the choice is saved in the existing app config;
 - save settings and logs under `%LOCALAPPDATA%\ButtonWatcher`.
 
 ### Requirements
 
 - Windows 10 or Windows 11
-- Google Chrome, Microsoft Edge, or Chromium
+- Google Chrome, Microsoft Edge, Opera, Yandex Browser, or Chromium
 - Python 3.12+ only if you want to run from source
 
 For normal use of the compiled `ButtonWatcher.exe`, Python is not required.
@@ -34,15 +35,16 @@ For normal use of the compiled `ButtonWatcher.exe`, Python is not required.
 The easiest way to use the app is:
 
 1. Run `ButtonWatcher.exe` or start the app from source.
-2. Click **LAUNCH BROWSER**.
-3. In the launched browser, open the page you want to monitor.
-4. Click **REFRESH TABS** if the new tab is not shown yet.
-5. Select the target tab.
-6. Enter the button text, for example `Я тут`.
-7. Choose a **Match mode**.
-8. Set **Check interval** and **Click cooldown**.
-9. Click **START MONITORING**.
-10. Leave the app running. You can keep using your mouse and keyboard normally.
+2. Choose **Chrome, Edge, Opera, Yandex Browser, or Chromium** in the Browser dropdown.
+3. Click **LAUNCH BROWSER**.
+4. In the launched browser, open the page you want to monitor.
+5. Click **REFRESH TABS** if the new tab is not shown yet.
+6. Select the target tab.
+7. Enter the button text, for example `Я тут`.
+8. Choose a **Match mode**.
+9. Set **Check interval** and **Click cooldown**.
+10. Click **START MONITORING**.
+11. Leave the app running. You can keep using your mouse and keyboard normally.
 
 While monitoring is active, the interface is visually dimmed and the START / STOP controls are highlighted so the active state is easy to see.
 
@@ -73,9 +75,9 @@ http://127.0.0.1:9222
 
 #### Recommended: LAUNCH BROWSER
 
-Click **LAUNCH BROWSER**. ButtonWatcher finds an installed Chrome / Edge / Chromium executable, starts a separate automation profile with remote debugging enabled, connects to it, and loads its tabs.
+Choose a browser first, then click **LAUNCH BROWSER**. ButtonWatcher finds that browser's executable, starts a separate automation profile with remote debugging enabled, connects to it, and loads its tabs.
 
-This is the most reliable method because a normal Chrome process started without remote debugging cannot be attached to retroactively through CDP.
+This is the most reliable method because a normal browser process started without remote debugging cannot be attached retroactively through CDP.
 
 #### Connect to a browser started manually
 
@@ -137,7 +139,11 @@ The integration fixture checks visible/hidden/disabled elements, iframe detectio
 %LOCALAPPDATA%\ButtonWatcher\
 ├── config.json
 ├── logs\
-└── browser-profile\
+├── browser-profile\              # Chrome
+├── browser-profile-edge\         # Edge
+├── browser-profile-opera\        # Opera
+├── browser-profile-yandex\       # Yandex
+└── browser-profile-chromium\     # Chromium
 ```
 
 ### Troubleshooting
@@ -172,7 +178,7 @@ The page may replace, cover, disable, or otherwise change the element between de
 
 ### Что делает программа
 
-ButtonWatcher — Windows-приложение, которое следит за одной выбранной вкладкой Chrome / Edge / Chromium и автоматически нажимает видимую активную кнопку, если её текст совпадает с указанной вами фразой.
+ButtonWatcher — Windows-приложение, которое следит за одной выбранной вкладкой Chrome / Edge / Opera / Yandex Browser / Chromium и автоматически нажимает видимую активную кнопку, если её текст совпадает с указанной вами фразой.
 
 Клик выполняется через Playwright непосредственно внутри страницы браузера. Физический курсор мыши Windows не двигается, поэтому во время мониторинга можно продолжать нормально пользоваться компьютером.
 
@@ -185,13 +191,14 @@ ButtonWatcher — Windows-приложение, которое следит за
 - клик внутри браузера без использования системного курсора;
 - постоянный мониторинг и повторные клики по той же видимой кнопке после cooldown;
 - фоновая работа без зависания интерфейса;
+- переключение интерфейса между английским и русским; выбранный язык сохраняется в существующем конфиге приложения;
 - сохранение настроек и логов в `%LOCALAPPDATA%\ButtonWatcher`;
 - сборка в один `.exe` через PyInstaller.
 
 ### Требования
 
 - Windows 10 или Windows 11
-- установленный Google Chrome, Microsoft Edge или Chromium
+- установленный Google Chrome, Microsoft Edge, Opera, Yandex Browser или Chromium
 - Python 3.12+ нужен только для запуска из исходников
 
 Для запуска готового `ButtonWatcher.exe` Python на компьютере не требуется.
@@ -199,15 +206,16 @@ ButtonWatcher — Windows-приложение, которое следит за
 ### Быстрый запуск
 
 1. Запустите `ButtonWatcher.exe`.
-2. Нажмите **LAUNCH BROWSER**.
-3. В открывшемся браузере перейдите на страницу, которую нужно отслеживать.
-4. Если вкладка ещё не появилась в программе, нажмите **REFRESH TABS**.
-5. Выберите нужную вкладку.
-6. Введите текст кнопки, например `Я тут`.
-7. Выберите **Match mode**.
-8. Настройте **Check interval** и **Click cooldown**.
-9. Нажмите **START MONITORING**.
-10. Оставьте приложение работать и продолжайте пользоваться компьютером как обычно.
+2. Выберите **Chrome, Edge, Opera, Yandex Browser или Chromium** в поле браузера.
+3. Нажмите **LAUNCH BROWSER**.
+4. В открывшемся браузере перейдите на страницу, которую нужно отслеживать.
+5. Если вкладка ещё не появилась в программе, нажмите **REFRESH TABS**.
+6. Выберите нужную вкладку.
+7. Введите текст кнопки, например `Я тут`.
+8. Выберите **Match mode**.
+9. Настройте **Check interval** и **Click cooldown**.
+10. Нажмите **START MONITORING**.
+11. Оставьте приложение работать и продолжайте пользоваться компьютером как обычно.
 
 Во время мониторинга остальные панели интерфейса затемняются, а START / STOP визуально выделяются.
 
@@ -238,7 +246,7 @@ http://127.0.0.1:9222
 
 #### Рекомендуемый вариант: LAUNCH BROWSER
 
-Нажмите **LAUNCH BROWSER**. Программа сама найдёт Chrome / Edge / Chromium, запустит отдельный профиль с включённым remote debugging, подключится к нему и покажет список вкладок.
+Сначала выберите браузер, затем нажмите **LAUNCH BROWSER**. Программа найдёт выбранный Chrome / Edge / Opera / Yandex Browser / Chromium, запустит отдельный профиль с включённым remote debugging, подключится к нему и покажет список вкладок.
 
 Это самый надёжный способ.
 

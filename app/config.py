@@ -11,7 +11,7 @@ from app.constants import (
     DEFAULT_ENDPOINT,
     DEFAULT_INTERVAL_MS,
 )
-from app.models import MatchMode
+from app.models import BrowserType, MatchMode
 
 
 def app_data_dir() -> Path:
@@ -24,11 +24,13 @@ def app_data_dir() -> Path:
 @dataclass(slots=True)
 class AppConfig:
     endpoint: str = DEFAULT_ENDPOINT
+    browser_type: str = BrowserType.CHROME.value
     target_text: str = ""
     match_mode: str = MatchMode.EXACT.value
     interval_ms: int = DEFAULT_INTERVAL_MS
     cooldown_seconds: float = DEFAULT_COOLDOWN_SECONDS
     close_launched_browser_on_exit: bool = True
+    language: str = "en"
     window_width: int = 1040
     window_height: int = 760
 

@@ -81,27 +81,31 @@ QPushButton#dangerButton[monitoringActive="true"]:hover {
     background: #8b2525;
     border-color: #ffa198;
 }
-QSpinBox::up-button, QDoubleSpinBox::up-button,
-QSpinBox::down-button, QDoubleSpinBox::down-button {
-    subcontrol-origin: border;
-    width: 25px;
+
+QPushButton#languageButton {
+    min-width: 42px;
+    max-width: 42px;
+    padding: 5px 8px;
+    font-weight: 700;
+}
+
+QToolButton#spinStepButton {
     background: #21262d;
+    border: 0;
     border-left: 1px solid #30363d;
+    color: #e6edf3;
+    font-size: 8pt;
+    padding: 0;
 }
-QSpinBox::up-button, QDoubleSpinBox::up-button {
-    subcontrol-position: top right;
-    border-bottom: 1px solid #30363d;
-    border-top-right-radius: 4px;
-}
-QSpinBox::down-button, QDoubleSpinBox::down-button {
-    subcontrol-position: bottom right;
-    border-bottom-right-radius: 4px;
-}
-QSpinBox::up-button:hover, QDoubleSpinBox::up-button:hover,
-QSpinBox::down-button:hover, QDoubleSpinBox::down-button:hover {
+QToolButton#spinStepButton:hover {
     background: #30363d;
+    color: #ffffff;
 }
-QSpinBox::up-button:pressed, QDoubleSpinBox::up-button:pressed,
-QSpinBox::down-button:pressed, QDoubleSpinBox::down-button:pressed {
+QToolButton#spinStepButton:pressed {
+    background: #1f6feb;
+    color: #ffffff;
+}
+QToolButton#spinStepButton:disabled {
     background: #161b22;
+    color: #6e7681;
 }

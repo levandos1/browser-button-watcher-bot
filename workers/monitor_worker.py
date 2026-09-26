@@ -8,7 +8,7 @@ from urllib.parse import urlparse
 
 from PySide6.QtCore import QThread, Signal
 
-from app.models import AppState, MonitorSettings
+from app.models import AppState, BrowserType, MonitorSettings
 from browser.clicker import click_match
 from browser.detector import find_matches
 from browser.manager import BrowserManager
@@ -69,21 +69,21 @@ class BrowserWorker(QThread):
             return
         asyncio.run_coroutine_threadsafe(coro, self.loop)
 
-    def connect_browser(self, endpoint: str) -> None:
-        self._submit(self._connect(endpoint))
+    def connect_browser(self, endpoint: str, browser_type: BrowserType) -> None:
+        self._submit(self._connect(endpoint, browser_type))
 
-    async def _connect(self, endpoint: str) -> None:
+    async def _connect(self, endpoint: str, browser_type: BrowserType) -> None:
         try:
             try:
                 tabs = await self.manager.connect(endpoint)
                 active_endpoint = endpoint
             except Exception as first_error:
-                discovered = await self.manager.discover_debug_endpoint(endpoint)
+                discovered = await self.manager.discover_debug_endpoint(endpoint, browser_type)
                 if not discovered:
                     raise RuntimeError(
-                        "No Chrome/Edge debugging endpoint was found. An already-open normal "
-                        "Chrome cannot be attached retroactively; it must have been started "
-                        "with remote debugging enabled, or use LAUNCH BROWSER in this app."
+                        "No debugging endpoint was found for the selected browser. "
+                        "A normal browser session cannot be attached retroactively; "
+                        "start it with remote debugging or use LAUNCH BROWSER."
                     ) from first_error
                 tabs = await self.manager.connect(discovered)
                 active_endpoint = discovered
@@ -95,14 +95,14 @@ class BrowserWorker(QThread):
         except Exception as exc:
             self._fail(f"Browser connection failed: {exc}")
 
-    def launch_browser(self, endpoint: str) -> None:
-        self._submit(self._launch_browser(endpoint))
+    def launch_browser(self, endpoint: str, browser_type: BrowserType) -> None:
+        self._submit(self._launch_browser(endpoint, browser_type))
 
-    async def _launch_browser(self, endpoint: str) -> None:
+    async def _launch_browser(self, endpoint: str, browser_type: BrowserType) -> None:
         try:
             parsed = urlparse(endpoint)
             port = parsed.port or 9222
-            executable = self.manager.launch_dedicated_browser(port=port)
+            executable = self.manager.launch_dedicated_browser(browser_type, port=port)
             self._log("INFO", f"Launched dedicated browser: {executable.name}")
             tabs = await self.manager.wait_until_connectable(endpoint)
             self.state_changed.emit(AppState.CONNECTED.value)

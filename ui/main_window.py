@@ -7,7 +7,6 @@ from PySide6.QtGui import QCloseEvent, QIcon, QKeySequence, QShortcut
 from PySide6.QtWidgets import (
     QCheckBox,
     QComboBox,
-    QDoubleSpinBox,
     QFormLayout,
     QGridLayout,
     QGroupBox,
@@ -19,17 +18,18 @@ from PySide6.QtWidgets import (
     QPlainTextEdit,
     QPushButton,
     QGraphicsOpacityEffect,
-    QSpinBox,
     QVBoxLayout,
     QWidget,
 )
 
 from app.config import AppConfig
 from app.constants import MAX_LOG_LINES
-from app.models import AppState, MatchMode, MonitorSettings, TabInfo
+from app.models import AppState, BrowserType, MatchMode, MonitorSettings, TabInfo
 from workers.monitor_worker import BrowserWorker
-from ui.widgets import AnimatedButton
+from browser.platforms import browser_name
+from ui.widgets import AnimatedButton, StepDoubleSpinBox, StepSpinBox
 from ui.theme import resource_path
+from ui.i18n import match_mode_label, normalize_language, state_label, tr
 
 
 class MainWindow(QMainWindow):
@@ -39,12 +39,15 @@ class MainWindow(QMainWindow):
         self.worker = BrowserWorker()
         self.tabs: list[TabInfo] = []
         self.state = AppState.DISCONNECTED
+        self.language = normalize_language(self.config.language)
+        self._last_metrics = {"runtime": 0, "checks": 0, "detections": 0, "clicks": 0, "errors": 0}
         self.setWindowTitle("ButtonWatcher")
         self.setWindowIcon(QIcon(str(resource_path("resources/icon.ico"))))
         self.resize(self.config.window_width, self.config.window_height)
         self._build_ui()
         self._bind_worker()
         self._apply_config()
+        self._retranslate_ui()
         self._update_controls()
 
     def _build_ui(self) -> None:
@@ -59,6 +62,9 @@ class MainWindow(QMainWindow):
         title.setStyleSheet("font-size: 16pt; font-weight: 700;")
         header.addWidget(title)
         header.addStretch()
+        self.language_button = AnimatedButton()
+        self.language_button.setObjectName("languageButton")
+        header.addWidget(self.language_button)
         header.addWidget(QLabel("v1.0"))
         layout.addLayout(header)
 
@@ -67,22 +73,31 @@ class MainWindow(QMainWindow):
         browser_grid = QGridLayout(browser_box)
         self.status_label = QLabel("● DISCONNECTED")
         self.status_label.setObjectName("status")
+        self.browser_combo = QComboBox()
+        for browser_type in BrowserType:
+            self.browser_combo.addItem(browser_name(browser_type), browser_type)
         self.endpoint_edit = QLineEdit()
         self.connect_button = AnimatedButton("CONNECT")
         self.launch_button = AnimatedButton("LAUNCH BROWSER")
         self.refresh_button = AnimatedButton("REFRESH TABS")
-        browser_grid.addWidget(QLabel("Status"), 0, 0)
+        self.status_caption = QLabel()
+        browser_grid.addWidget(self.status_caption, 0, 0)
         browser_grid.addWidget(self.status_label, 0, 1, 1, 3)
-        browser_grid.addWidget(QLabel("Endpoint"), 1, 0)
-        browser_grid.addWidget(self.endpoint_edit, 1, 1, 1, 3)
-        browser_grid.addWidget(self.connect_button, 2, 1)
-        browser_grid.addWidget(self.launch_button, 2, 2)
-        browser_grid.addWidget(self.refresh_button, 2, 3)
+        self.browser_caption = QLabel()
+        browser_grid.addWidget(self.browser_caption, 1, 0)
+        browser_grid.addWidget(self.browser_combo, 1, 1, 1, 3)
+        self.endpoint_caption = QLabel()
+        browser_grid.addWidget(self.endpoint_caption, 2, 0)
+        browser_grid.addWidget(self.endpoint_edit, 2, 1, 1, 3)
+        browser_grid.addWidget(self.connect_button, 3, 1)
+        browser_grid.addWidget(self.launch_button, 3, 2)
+        browser_grid.addWidget(self.refresh_button, 3, 3)
         layout.addWidget(browser_box)
 
         target_box = QGroupBox("TARGET")
         self.target_box = target_box
         target_form = QFormLayout(target_box)
+        self.target_form = target_form
         self.tab_combo = QComboBox()
         self.tab_url = QLabel("No target tab selected")
         self.tab_url.setObjectName("muted")
@@ -91,7 +106,7 @@ class MainWindow(QMainWindow):
         self.target_edit.setPlaceholderText("Enter button text...")
         self.match_combo = QComboBox()
         for mode in MatchMode:
-            self.match_combo.addItem(mode.value, mode)
+            self.match_combo.addItem(match_mode_label(self.language, mode), mode)
         target_form.addRow("Target tab", self.tab_combo)
         target_form.addRow("", self.tab_url)
         target_form.addRow("Button text", self.target_edit)
@@ -101,16 +116,15 @@ class MainWindow(QMainWindow):
         settings_box = QGroupBox("SETTINGS")
         self.settings_box = settings_box
         settings_form = QFormLayout(settings_box)
-        self.interval_spin = QSpinBox()
+        self.settings_form = settings_form
+        self.interval_spin = StepSpinBox()
         self.interval_spin.setRange(100, 5000)
         self.interval_spin.setSuffix(" ms")
         self.interval_spin.setSingleStep(100)
-        self.interval_spin.setButtonSymbols(QSpinBox.ButtonSymbols.PlusMinus)
-        self.cooldown_spin = QDoubleSpinBox()
+        self.cooldown_spin = StepDoubleSpinBox()
         self.cooldown_spin.setRange(0.5, 60.0)
         self.cooldown_spin.setSingleStep(0.5)
         self.cooldown_spin.setSuffix(" sec")
-        self.cooldown_spin.setButtonSymbols(QDoubleSpinBox.ButtonSymbols.PlusMinus)
         self.close_browser_check = QCheckBox(
             "Close dedicated automation browser on app exit"
         )
@@ -140,13 +154,14 @@ class MainWindow(QMainWindow):
         self.log_view = QPlainTextEdit()
         self.log_view.setReadOnly(True)
         self.log_view.document().setMaximumBlockCount(MAX_LOG_LINES)
-        clear_button = AnimatedButton("CLEAR LOG")
-        clear_button.clicked.connect(self.log_view.clear)
+        self.clear_button = AnimatedButton()
+        self.clear_button.clicked.connect(self.log_view.clear)
         log_layout.addWidget(self.log_view, 1)
-        log_layout.addWidget(clear_button, 0, Qt.AlignRight)
+        log_layout.addWidget(self.clear_button, 0, Qt.AlignRight)
         layout.addWidget(log_box, 1)
         self.setCentralWidget(root)
 
+        self.language_button.clicked.connect(self._toggle_language)
         self.connect_button.clicked.connect(self._connect)
         self.launch_button.clicked.connect(self._launch)
         self.refresh_button.clicked.connect(self.worker.refresh_tabs)
@@ -172,8 +187,18 @@ class MainWindow(QMainWindow):
 
     def _apply_config(self) -> None:
         self.endpoint_edit.setText(self.config.endpoint)
+        try:
+            saved_browser = BrowserType(self.config.browser_type)
+        except ValueError:
+            saved_browser = BrowserType.CHROME
+        browser_index = self.browser_combo.findData(saved_browser)
+        self.browser_combo.setCurrentIndex(max(0, browser_index))
         self.target_edit.setText(self.config.target_text)
-        index = self.match_combo.findText(self.config.match_mode)
+        try:
+            saved_mode = MatchMode(self.config.match_mode)
+        except ValueError:
+            saved_mode = MatchMode.EXACT
+        index = self.match_combo.findData(saved_mode)
         self.match_combo.setCurrentIndex(max(0, index))
         self.interval_spin.setValue(self.config.interval_ms)
         self.cooldown_spin.setValue(self.config.cooldown_seconds)
@@ -181,15 +206,88 @@ class MainWindow(QMainWindow):
             self.config.close_launched_browser_on_exit
         )
 
+    def _toggle_language(self) -> None:
+        self._set_language("ru" if self.language == "en" else "en")
+
+    def _set_language(self, language: str, persist: bool = True) -> None:
+        self.language = normalize_language(language)
+        if persist:
+            self.config.language = self.language
+            self.config.save()
+        self._retranslate_ui()
+        self._update_controls()
+
+    def _retranslate_ui(self) -> None:
+        self.language_button.setText("RU" if self.language == "en" else "EN")
+        self.language_button.setToolTip("Русский" if self.language == "en" else "English")
+        self.browser_box.setTitle(tr(self.language, "browser"))
+        self.status_caption.setText(tr(self.language, "status"))
+        self.browser_caption.setText(tr(self.language, "browser_type"))
+        self.endpoint_caption.setText(tr(self.language, "endpoint"))
+        self.connect_button.setText(tr(self.language, "connect"))
+        self.launch_button.setText(tr(self.language, "launch_browser"))
+        self.refresh_button.setText(tr(self.language, "refresh_tabs"))
+        self.target_box.setTitle(tr(self.language, "target"))
+        self.target_form.labelForField(self.tab_combo).setText(tr(self.language, "target_tab"))
+        self.target_form.labelForField(self.target_edit).setText(tr(self.language, "button_text"))
+        self.target_form.labelForField(self.match_combo).setText(tr(self.language, "match_mode"))
+        self.target_edit.setPlaceholderText(tr(self.language, "button_placeholder"))
+
+        current_mode = self._current_match_mode()
+        for index in range(self.match_combo.count()):
+            mode = self.match_combo.itemData(index)
+            self.match_combo.setItemText(index, match_mode_label(self.language, mode))
+        index = self.match_combo.findData(current_mode)
+        if index >= 0:
+            self.match_combo.setCurrentIndex(index)
+        if self.tab_combo.currentIndex() < 0:
+            self.tab_url.setText(tr(self.language, "no_target_tab"))
+        self.settings_box.setTitle(tr(self.language, "settings"))
+        self.settings_form.labelForField(self.interval_spin).setText(tr(self.language, "check_interval"))
+        self.settings_form.labelForField(self.cooldown_spin).setText(tr(self.language, "click_cooldown"))
+        self.close_browser_check.setText(tr(self.language, "close_browser"))
+        self.interval_spin.setSuffix(" ms" if self.language == "en" else " мс")
+        self.cooldown_spin.setSuffix(" sec" if self.language == "en" else " сек")
+        self.log_box.setTitle(tr(self.language, "log"))
+        self.clear_button.setText(tr(self.language, "clear_log"))
+        self.status_label.setText(f"● {state_label(self.language, self.state)}")
+        self._render_metrics()
+
+    def _render_metrics(self) -> None:
+        metrics = self._last_metrics
+        hours, rem = divmod(metrics["runtime"], 3600)
+        minutes, seconds = divmod(rem, 60)
+        self.metrics_label.setText(
+            f"{tr(self.language, 'runtime')} {hours:02}:{minutes:02}:{seconds:02}  "
+            f"{tr(self.language, 'checks')} {metrics['checks']:,}  "
+            f"{tr(self.language, 'detections')} {metrics['detections']:,}  "
+            f"{tr(self.language, 'clicks')} {metrics['clicks']:,}  "
+            f"{tr(self.language, 'errors')} {metrics['errors']:,}"
+        )
+
+    def _current_match_mode(self) -> MatchMode:
+        data = self.match_combo.currentData()
+        try:
+            return data if isinstance(data, MatchMode) else MatchMode(data)
+        except (TypeError, ValueError):
+            return MatchMode.EXACT
+
+    def _current_browser_type(self) -> BrowserType:
+        data = self.browser_combo.currentData()
+        try:
+            return data if isinstance(data, BrowserType) else BrowserType(data)
+        except (TypeError, ValueError):
+            return BrowserType.CHROME
+
     def _connect(self) -> None:
-        self.worker.connect_browser(self.endpoint_edit.text().strip())
+        self.worker.connect_browser(self.endpoint_edit.text().strip(), self._current_browser_type())
 
     def _launch(self) -> None:
-        self.worker.launch_browser(self.endpoint_edit.text().strip())
+        self.worker.launch_browser(self.endpoint_edit.text().strip(), self._current_browser_type())
 
     def _select_tab(self, index: int) -> None:
         if index < 0 or index >= len(self.tabs):
-            self.tab_url.setText("No target tab selected")
+            self.tab_url.setText(tr(self.language, "no_target_tab"))
             self._update_controls()
             return
         tab = self.tabs[index]
@@ -202,19 +300,19 @@ class MainWindow(QMainWindow):
             QMessageBox.warning(
                 self,
                 "ButtonWatcher",
-                "Target button text cannot be empty.",
+                tr(self.language, "empty_target"),
             )
             return
         if self.tab_combo.currentIndex() < 0:
             QMessageBox.warning(
                 self,
                 "ButtonWatcher",
-                "Select a target tab first.",
+                tr(self.language, "select_tab_first"),
             )
             return
         settings = MonitorSettings(
             target_text=text,
-            match_mode=self.match_combo.currentData(),
+            match_mode=self._current_match_mode(),
             interval_ms=self.interval_spin.value(),
             cooldown_seconds=self.cooldown_spin.value(),
         )
@@ -236,7 +334,7 @@ class MainWindow(QMainWindow):
         self.tab_combo.setCurrentIndex(restore)
         self.tab_combo.blockSignals(False)
         if restore < 0:
-            self.tab_url.setText("No target tab selected")
+            self.tab_url.setText(tr(self.language, "no_target_tab"))
         else:
             self.tab_url.setText(tabs[restore].url)
             self.worker.select_tab(tabs[restore].key)
@@ -255,7 +353,7 @@ class MainWindow(QMainWindow):
             AppState.STOPPING: "#d29922",
             AppState.ERROR: "#f85149",
         }
-        self.status_label.setText(f"● {self.state.value}")
+        self.status_label.setText(f"● {state_label(self.language, self.state)}")
         self.status_label.setStyleSheet(
             f"color: {colors[self.state]}; font-weight: 700;"
         )
@@ -271,6 +369,7 @@ class MainWindow(QMainWindow):
         has_tab = self.tab_combo.currentIndex() >= 0
         has_text = bool(self.target_edit.text().strip())
         self.refresh_button.setEnabled(connected and not monitoring)
+        self.browser_combo.setEnabled(not monitoring)
         self.tab_combo.setEnabled(connected and not monitoring)
         self.target_edit.setEnabled(not monitoring)
         self.match_combo.setEnabled(not monitoring)
@@ -287,8 +386,8 @@ class MainWindow(QMainWindow):
     def _apply_monitoring_visuals(self, monitoring: bool) -> None:
         self.start_button.setProperty("monitoringActive", monitoring)
         self.stop_button.setProperty("monitoringActive", monitoring)
-        self.start_button.setText("MONITORING ACTIVE" if monitoring else "START MONITORING")
-        self.stop_button.setText("STOP MONITORING" if monitoring else "STOP")
+        self.start_button.setText(tr(self.language, "monitoring_active") if monitoring else tr(self.language, "start_monitoring"))
+        self.stop_button.setText(tr(self.language, "stop_monitoring") if monitoring else tr(self.language, "stop"))
         for button in (self.start_button, self.stop_button):
             button.style().unpolish(button)
             button.style().polish(button)
@@ -315,26 +414,20 @@ class MainWindow(QMainWindow):
             QMessageBox.warning(self, "ButtonWatcher", message)
 
     def _set_metrics(self, metrics: dict) -> None:
-        sec = metrics["runtime"]
-        hours, rem = divmod(sec, 3600)
-        minutes, seconds = divmod(rem, 60)
-        self.metrics_label.setText(
-            f"Runtime {hours:02}:{minutes:02}:{seconds:02}  "
-            f"Checks {metrics['checks']:,}  "
-            f"Detections {metrics['detections']:,}  "
-            f"Clicks {metrics['clicks']:,}  "
-            f"Errors {metrics['errors']:,}"
-        )
+        self._last_metrics = metrics
+        self._render_metrics()
 
     def closeEvent(self, event: QCloseEvent) -> None:
         self.config.endpoint = self.endpoint_edit.text().strip()
+        self.config.browser_type = self._current_browser_type().value
         self.config.target_text = self.target_edit.text()
-        self.config.match_mode = self.match_combo.currentText()
+        self.config.match_mode = self._current_match_mode().value
         self.config.interval_ms = self.interval_spin.value()
         self.config.cooldown_seconds = self.cooldown_spin.value()
         self.config.close_launched_browser_on_exit = (
             self.close_browser_check.isChecked()
         )
+        self.config.language = self.language
         self.config.window_width = self.width()
         self.config.window_height = self.height()
         self.config.save()
